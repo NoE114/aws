@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroid Typer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="hud">
+            <div id="score">Score: <span id="score-value">0</span></div>
+            <div id="level">Level: <span id="level-value">1</span></div>
+            <div id="lives">Lives: <span id="lives-value">3</span></div>
+        </div>
+        <div id="game-area">
+            <div id="spacecraft"></div>
+            <!-- Asteroids will be dynamically added here -->
+        </div>
+        <div id="current-word"></div>
+        <div id="game-over" class="hidden">
+            <h2>Game Over</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+        <div id="start-screen">
+            <h1>Asteroid Typer</h1>
+            <p>Type the words on the asteroids to destroy them before they hit your spacecraft!</p>
+            <button id="start-btn">Start Game</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
