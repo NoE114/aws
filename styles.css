@@ -19,8 +19,17 @@ body {
     position: relative;
     width: 100%;
     height: 100vh;
-    background: url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?ixlib=rb-1.2.1&auto=format&fit=crop&w=1951&q=80') center/cover no-repeat;
+    background-color: #000;
     overflow: hidden;
+}
+
+#starfield {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
 }
 
 #hud {
@@ -38,6 +47,7 @@ body {
     width: 100%;
     height: 100%;
     position: relative;
+    z-index: 2;
 }
 
 #spacecraft {
@@ -50,6 +60,7 @@ body {
     background: url('space-craft.png') center/contain no-repeat;
     z-index: 10;
     transition: transform 0.3s ease;
+    transform-origin: center center;
 }
 
 .asteroid {
@@ -225,4 +236,65 @@ button:hover {
     to {
         text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
     }
+}
+.star {
+    position: absolute;
+    background-color: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 3px #fff, 0 0 5px #fff;
+    opacity: 0.8;
+    animation: twinkle 5s infinite alternate, move 30s linear infinite;
+}
+
+@keyframes twinkle {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+@keyframes move {
+    from { transform: translateY(-10px); }
+    to { transform: translateY(110vh); }
+}
+/* Nebula effect */
+@keyframes nebula {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+}
+
+#game-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, rgba(29, 39, 107, 0.2) 0%, rgba(0, 0, 0, 0) 70%),
+                radial-gradient(ellipse at center, rgba(77, 5, 232, 0.1) 0%, rgba(0, 0, 0, 0) 70%),
+                radial-gradient(ellipse at center, rgba(0, 159, 255, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+    background-size: 200% 200%;
+    z-index: 1;
+    opacity: 0.7;
+    animation: nebula 30s ease infinite alternate;
+    pointer-events: none;
+}
+.spacecraft-engine {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(circle, rgba(0,255,255,0.8) 0%, rgba(0,255,255,0.4) 50%, rgba(0,0,0,0) 100%);
+    border-radius: 50%;
+    animation: pulse-engine 1s infinite alternate;
+    z-index: 9;
+}
+
+@keyframes pulse-engine {
+    0% { opacity: 0.5; height: 20px; }
+    100% { opacity: 1; height: 30px; }
+}
+.attack {
+    transform-origin: center center;
 }

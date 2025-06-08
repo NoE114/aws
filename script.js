@@ -24,7 +24,9 @@ const gameState = {
     asteroids: [],
     attacks: [],
     spawnInterval: null,
-    gameLoop: null
+    gameLoop: null,
+    targetingAsteroid: null,
+    spacecraftBaseX: 50 // Base position percentage
 };
 
 // DOM Elements
@@ -48,6 +50,11 @@ function initGame() {
     elements.restartBtn.addEventListener('click', restartGame);
     document.addEventListener('keydown', handleKeyDown);
     
+    // Add engine effect to spacecraft
+    const engineEffect = document.createElement('div');
+    engineEffect.className = 'spacecraft-engine';
+    elements.spacecraft.appendChild(engineEffect);
+    
     // Set initial values
     updateHUD();
 }
@@ -61,12 +68,19 @@ function startGame() {
     gameState.asteroids = [];
     gameState.attacks = [];
     gameState.typedWord = '';
+    gameState.targetingAsteroid = null;
     
     elements.startScreen.classList.add('hidden');
     elements.gameOver.classList.add('hidden');
     
     updateHUD();
     startGameLoop();
+    
+    // Start dynamic starfield animation
+    updateStarfield();
+    
+    // Start spacecraft movement
+    updateSpacecraftMovement();
 }
 
 // Restart the game
@@ -404,44 +418,73 @@ function fireAttack(targetWord) {
     const targetAsteroid = gameState.asteroids.find(a => a.word === targetWord);
     if (!targetAsteroid) return;
     
-    const attack = document.createElement('div');
-    attack.className = 'attack';
+    // Set as targeting asteroid
+    gameState.targetingAsteroid = targetAsteroid;
     
     // Get positions
     const spacecraftRect = elements.spacecraft.getBoundingClientRect();
     const gameAreaRect = elements.gameArea.getBoundingClientRect();
+    const spacecraftCenterX = spacecraftRect.left - gameAreaRect.left + (spacecraftRect.width / 2);
+    const spacecraftCenterY = spacecraftRect.top - gameAreaRect.top + (spacecraftRect.height / 2);
+    const spacecraftTopY = spacecraftCenterY - 40; // Top of spacecraft
     
-    // Starting position (center of spacecraft)
-    const posX = spacecraftRect.left - gameAreaRect.left + (spacecraftRect.width / 2) - 15;
-    const posY = spacecraftRect.top - gameAreaRect.top;
-    
-    attack.style.left = `${posX}px`;
-    attack.style.top = `${posY}px`;
-    
-    elements.gameArea.appendChild(attack);
-    
-    // Calculate direction to target
     const targetX = targetAsteroid.posX + 40; // Center of asteroid
     const targetY = targetAsteroid.posY + 40;
     
     // Calculate angle to target
-    const dx = targetX - posX;
-    const dy = targetY - posY;
-    const angle = Math.atan2(dy, dx);
+    const dx = targetX - spacecraftCenterX;
+    const dy = targetY - spacecraftCenterY;
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     
-    // Calculate velocity components
-    const speed = 15;
-    const vx = Math.cos(angle) * speed;
-    const vy = Math.sin(angle) * speed;
+    // Fix rotation direction to match asteroid position
+    // If asteroid is to the right, rotate right; if to the left, rotate left
+    let rotationAngle = 0;
+    if (dx > 0) { // Asteroid is to the right
+        rotationAngle = Math.min(30, Math.abs(angle - 90));
+    } else { // Asteroid is to the left
+        rotationAngle = -Math.min(30, Math.abs(angle - 90));
+    }
     
-    gameState.attacks.push({
-        element: attack,
-        posX: posX,
-        posY: posY,
-        vx: vx,
-        vy: vy,
-        targetWord: targetWord
-    });
+    // Apply rotation to spacecraft
+    elements.spacecraft.style.transform = `translateX(-50%) rotate(${rotationAngle}deg)`;
+    
+    // Create attack after a short delay
+    setTimeout(() => {
+        const attack = document.createElement('div');
+        attack.className = 'attack';
+        
+        // Always start attack from top of spacecraft
+        const posX = spacecraftCenterX - 15; // Center horizontally, adjust for attack width
+        const posY = spacecraftTopY - 10; // Start from top of spacecraft
+        
+        attack.style.left = `${posX}px`;
+        attack.style.top = `${posY}px`;
+        
+        elements.gameArea.appendChild(attack);
+        
+        // Calculate velocity components toward target
+        const targetAngle = Math.atan2(targetY - posY, targetX - posX);
+        const speed = 15;
+        const vx = Math.cos(targetAngle) * speed;
+        const vy = Math.sin(targetAngle) * speed;
+        
+        gameState.attacks.push({
+            element: attack,
+            posX: posX,
+            posY: posY,
+            vx: vx,
+            vy: vy,
+            targetWord: targetWord
+        });
+        
+        // Reset spacecraft rotation after a delay
+        setTimeout(() => {
+            if (gameState.isPlaying) {
+                elements.spacecraft.style.transform = `translateX(-50%) rotate(0deg)`;
+                gameState.targetingAsteroid = null;
+            }
+        }, 800);
+    }, 300);
 }
 
 // Handle keyboard input
@@ -591,5 +634,107 @@ function clearAllGameObjects() {
     }
 }
 
+// Create starfield background
+function createStarfield() {
+    const starfield = document.getElementById('starfield');
+    const starsCount = 200;
+    
+    for (let i = 0; i < starsCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        
+        // Random position
+        const x = Math.random() * 100;
+        const y = Math.random() * 100;
+        
+        // Random size and speed
+        const size = Math.random() * 3;
+        const speed = 1 + Math.random() * 3;
+        
+        // Set star properties
+        star.style.left = `${x}%`;
+        star.style.top = `${y}%`;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        star.style.animationDuration = `${speed}s`;
+        
+        starfield.appendChild(star);
+    }
+}
+
 // Initialize the game when the page loads
-window.addEventListener('load', initGame);
+window.addEventListener('load', () => {
+    createStarfield();
+    initGame();
+});
+// Update starfield with parallax effect
+function updateStarfield() {
+    if (!gameState.isPlaying) return;
+    
+    // Create new stars occasionally
+    if (Math.random() < 0.1) {
+        const starfield = document.getElementById('starfield');
+        const star = document.createElement('div');
+        star.className = 'star';
+        
+        // Random position at top
+        const x = Math.random() * 100;
+        const size = Math.random() * 3;
+        const speed = 1 + Math.random() * 3;
+        
+        // Set star properties
+        star.style.left = `${x}%`;
+        star.style.top = '-5px';
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        star.style.animationDuration = `${speed}s`;
+        
+        starfield.appendChild(star);
+        
+        // Remove star after animation completes
+        setTimeout(() => {
+            if (star.parentNode === starfield) {
+                starfield.removeChild(star);
+            }
+        }, speed * 1000);
+    }
+    
+    // Continue updating
+    requestAnimationFrame(updateStarfield);
+}
+// Add subtle hover movement to spacecraft
+function updateSpacecraftMovement() {
+    if (!gameState.isPlaying) return;
+    
+    const spacecraft = elements.spacecraft;
+    const time = Date.now() / 1000;
+    
+    // Subtle floating motion
+    const offsetY = Math.sin(time) * 5;
+    const offsetX = Math.sin(time * 0.7) * 3;
+    
+    spacecraft.style.transform = `translateX(-50%) translateY(${offsetY}px) translateX(${offsetX}px)`;
+    
+    requestAnimationFrame(updateSpacecraftMovement);
+}
+// Update spacecraft movement to avoid interfering with rotation
+function updateSpacecraftMovement() {
+    if (!gameState.isPlaying) return;
+    
+    // Skip hover animation if currently targeting an asteroid
+    if (gameState.targetingAsteroid) {
+        requestAnimationFrame(updateSpacecraftMovement);
+        return;
+    }
+    
+    const spacecraft = elements.spacecraft;
+    const time = Date.now() / 1000;
+    
+    // Subtle floating motion
+    const offsetY = Math.sin(time) * 5;
+    
+    // Apply transform while preserving any rotation
+    spacecraft.style.transform = `translateX(-50%) translateY(${offsetY}px)`;
+    
+    requestAnimationFrame(updateSpacecraftMovement);
+}
